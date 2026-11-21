@@ -1,0 +1,11 @@
+{
+  "id": "./",
+  "name": "BabyFlow 2",
+  "short_name": "BabyFlow 2",
+  "description": "BabyFlow 2 baby schedule tracker",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8f5f1",
+  "theme_color": "#f8f5f1"
+}
