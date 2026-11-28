@@ -19,7 +19,7 @@
 'use strict';
 const APP='babyflow2', SCHEMA=3, KEY='babyflow2:v3:data';
 const uid=()=>crypto.randomUUID?.()||('bf2-'+Date.now()+'-'+Math.random().toString(16).slice(2));
-const defaults=()=>({schema:SCHEMA,profile:{babyName:''},setupComplete:false,settings:{goodMorning:'',bedtime:'20:00',feedDuration:'20',feedInterval:'150',wakeWindow:'60',napDuration:'60',extraFeedDuration:'10',dreamFeedDuration:'20',dreamFeedTimes:'',dreamFeedTargets:[],minCatNap:20,extraFeedResetsInterval:false,exceptions:{feeds:{},naps:{},wakeWindows:{}}},advanced:{goodMorningRangePoint:'beginning',feedRangePoint:'beginning',feedIntervalRangePoint:'beginning',feedDurationRangePoint:'beginning',wakeRangePoint:'middle',napRangePoint:'middle',bedtimeRangePoint:'beginning',extraFeedRangePoint:'middle',dreamFeedRangePoint:'beginning',showElapsed:false,showRemaining:false,adjustmentDistribution:'later',activityAutoComplete:false,activityDurationDisplay:true,showTimelineLocks:true},activities:{builtins:['Bath','Dry off / Lotion / PJs','Tummy Time','Walk','Play'],custom:[],hidden:[],order:[],orderMode:'alphabetical'},currentDay:null,history:[],meta:{createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}});
+const defaults=()=>({schema:SCHEMA,profile:{babyName:''},setupComplete:false,settings:{goodMorning:'',bedtime:'20:00',feedDuration:'20',feedInterval:'150',wakeWindow:'60',napDuration:'60',extraFeedDuration:'10',dreamFeedDuration:'20',dreamFeedTimes:'',dreamFeedTargets:[],minCatNap:20,extraFeedResetsInterval:false,exceptions:{feeds:{},naps:{},wakeWindows:{}}},advanced:{goodMorningRangePoint:'beginning',feedRangePoint:'beginning',feedIntervalRangePoint:'beginning',feedDurationRangePoint:'beginning',wakeRangePoint:'middle',napRangePoint:'middle',bedtimeRangePoint:'beginning',extraFeedRangePoint:'middle',dreamFeedRangePoint:'beginning',showElapsed:false,showRemaining:false,adjustmentDistribution:'later',activityAutoComplete:false,activityDurationDisplay:true,showBedtimeResolutionNotice:true,showTimelineLocks:true},activities:{builtins:['Bath','Dry off / Lotion / PJs','Tummy Time','Walk','Play'],custom:[],hidden:[],order:[],orderMode:'alphabetical'},currentDay:null,history:[],meta:{createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()}});
 function validStoredDay(d){
  if(!d||typeof d!=='object'||!Array.isArray(d.events)||d.events.length>5000)return false;
  const seen=new Set();
@@ -139,6 +139,7 @@ function migratePreferences(d){
  if(!['beginning','middle','end'].includes(d.advanced.feedIntervalRangePoint))d.advanced.feedIntervalRangePoint=base;
  if(!['beginning','middle','end'].includes(d.advanced.feedDurationRangePoint))d.advanced.feedDurationRangePoint=base;
  if(!['beginning','middle','end'].includes(d.advanced.dreamFeedRangePoint))d.advanced.dreamFeedRangePoint='beginning';
+ if(d.advanced.showBedtimeResolutionNotice==null)d.advanced.showBedtimeResolutionNotice=true;
  if(d.advanced.showTimelineLocks==null)d.advanced.showTimelineLocks=true;
  d.activities=d.activities||{builtins:['Bath','Dry off / Lotion / PJs','Tummy Time','Walk','Play'],custom:[],hidden:[]};
  d.activities.builtins=Array.isArray(d.activities.builtins)?d.activities.builtins:[];
@@ -1552,7 +1553,7 @@ function generateDay(gm,previousDay=null){
  let d={id:uid(),date:isoDay(),startedAt:new Date().toISOString(),goodMorningActual:gm,events:ev,conflicts:[],overrides:[]};reconcileDay(d);return d;
 }
 function setup(){let step=0;const fields=[['Baby name (optional)','babyName','text',db.profile.babyName],['Good Morning target (optional; time or range)','goodMorning','text',db.settings.goodMorning],['Bedtime target (time or range)','bedtime','text',db.settings.bedtime],['Default feed interval (minutes or range)','feedInterval','text',db.settings.feedInterval],['Default feed duration (minutes or range)','feedDuration','text',db.settings.feedDuration],['Default wake window (minutes or range)','wakeWindow','text',db.settings.wakeWindow],['Default nap duration (minutes or range)','napDuration','text',db.settings.napDuration]];
- function draw(){let f=fields[step];app.innerHTML=`<div class="setup"><span class="badge">BabyFlow 2 (Beta · BF2 v1.0.33)</span><h1 style="margin-top:12px">Set up BabyFlow</h1><p class="muted">Just the essentials. You can change these later.</p>${storageWriteWarning?`<div class="notice" role="alert">${esc(storageWriteWarning)}</div>`:''}${db.meta.storageWarning?`<div class="notice">${esc(db.meta.storageWarning)}</div>`:""}<div class="progress"><span style="width:${((step+1)/fields.length)*100}%"></span></div><div class="card"><label>${f[0]}<input id="setupInput" type="${f[2]}" value="${esc(f[3])}"></label></div><div class="row between">${step?'<button class="secondary" id="back">Back</button>':'<span></span>'}<button id="next">${step===fields.length-1?'Finish':'Next'}</button></div></div>`; nav.innerHTML='';
+ function draw(){let f=fields[step];app.innerHTML=`<div class="setup"><span class="badge">BabyFlow 2 (Beta · BF2 v1.0.34)</span><h1 style="margin-top:12px">Set up BabyFlow</h1><p class="muted">Just the essentials. You can change these later.</p>${storageWriteWarning?`<div class="notice" role="alert">${esc(storageWriteWarning)}</div>`:''}${db.meta.storageWarning?`<div class="notice">${esc(db.meta.storageWarning)}</div>`:""}<div class="progress"><span style="width:${((step+1)/fields.length)*100}%"></span></div><div class="card"><label>${f[0]}<input id="setupInput" type="${f[2]}" value="${esc(f[3])}"></label></div><div class="row between">${step?'<button class="secondary" id="back">Back</button>':'<span></span>'}<button id="next">${step===fields.length-1?'Finish':'Next'}</button></div></div>`; nav.innerHTML='';
  document.querySelector('#back')?.addEventListener('click',()=>{step--;draw()});document.querySelector('#next').onclick=()=>{
   let v=document.querySelector('#setupInput').value.trim(),key=f[1];
   if((key==='bedtime'||key==='goodMorning'&&v)&&!clockSpec(v,key==='bedtime'?db.advanced.bedtimeRangePoint:db.advanced.goodMorningRangePoint)){
@@ -1569,17 +1570,22 @@ function setup(){let step=0;const fields=[['Baby name (optional)','babyName','te
  }}
  draw()}
 function navBar(){nav.innerHTML=`<nav class="nav"><div class="nav-inner">${[['today','Today'],['history','History'],['settings','Settings']].map(([k,l])=>`<button data-v="${k}" class="${view===k?'active':''}">${l}</button>`).join('')}</div></nav>`;nav.querySelectorAll('button').forEach(b=>b.onclick=()=>{view=b.dataset.v;render()})}
-function status(e){return e.state==='actual'?'Actual':e.state==='autoCompleted'?'Auto-Completed':e.locked||e.locks?.start||e.locks?.duration||e.locks?.end?'Locked':'Projected'}
+function timelineStatus(e,visibleLock){
+ if(e.state==='actual')return 'Actual';
+ if(e.state==='autoCompleted')return 'Auto-Completed';
+ return visibleLock?'Locked':'Projected';
+}
 function eventHTML(e,feedIntervalText=''){
  const st=e.actualStart??e.start,hasLock=e.locked||e.locks?.start||e.locks?.duration||e.locks?.end;
- const lockMark=db.advanced.showTimelineLocks!==false&&hasLock?' <span title="Locked">🔒</span>':'';const adjustedMark=e.optimization?' <span title="Adjusted to fit scheduling rules">· Adjusted</span>':'';
+ const visibleLock=db.advanced.showTimelineLocks!==false&&hasLock;
+ const lockMark=visibleLock?' <span title="Locked">🔒</span>':'';const adjustedMark=e.optimization?' <span title="Adjusted to fit scheduling rules">· Adjusted</span>':'';
  const ruleMark=db.currentDay?.overrides?.some(o=>o.eventId===e.id&&(!o.type||o.type==='manual-rule'))?' <span title="One-day rule override active">· One-day rule</span>':'';
  const displayDuration=e.duration!=null&&e.duration>0&&!(e.type==='activity'&&db.advanced.activityDurationDisplay===false);
  const durationMeta=displayDuration?`${e.duration} mins${e.type==='feed'?' · feed duration':''}`:'';
- const endMeta=hasProtectedEnd(e)?`End locked at ${time(e.lockedEnd)}`:'';
+ const endMeta=visibleLock&&hasProtectedEnd(e)?`End locked at ${time(e.lockedEnd)}`:'';
  const meta=[durationMeta,endMeta,feedIntervalText].filter(Boolean).join('<br>');
  const note=e.notes?`<div class="meta" style="white-space:pre-wrap">Notes: ${esc(e.notes)}</div>`:'';
- return `<div class="event" data-id="${e.id}"><div class="time">${time(st)}</div><div><div class="event-title">${esc(e.title)}${lockMark}${adjustedMark}${ruleMark}</div>${meta?`<div class="meta">${meta}</div>`:''}${note}</div><span class="state ${e.state==='actual'?'actual':e.locked?'locked':''}">${status(e)}</span></div>`;
+ return `<div class="event" data-id="${e.id}"><div class="time">${time(st)}</div><div><div class="event-title">${esc(e.title)}${lockMark}${adjustedMark}${ruleMark}</div>${meta?`<div class="meta">${meta}</div>`:''}${note}</div><span class="state ${e.state==='actual'?'actual':visibleLock&&e.locked?'locked':''}">${timelineStatus(e,visibleLock)}</span></div>`;
 }
 function wakeWindowHTML(title,start,end,d){
  const active=d===db.currentDay&&(db.advanced.showElapsed||db.advanced.showRemaining);
@@ -1653,7 +1659,9 @@ function exceptionResolutionHTML(d){
   return `<div class="row between" style="margin-top:8px"><span class="small">${esc(e?.type==='goodnight'&&r.key==='wakeWindow'?'Final Wake Window':e?.title||'Event')} · ${esc(r.key)}: ${esc(label)}</span><button class="secondary" data-reopen-exception="${esc(r.eventId)}" data-reopen-key="${esc(r.key)}">Change</button></div>`;
  }).join('')}</div>`;
 }
-function bedtimeResolutionHTML(d){let r=d.bedtimeResolution;if(!r)return '';let labels={skip:'Skipped final nap',shorten:'Shortened final nap below minimum',push:'Pushed bedtime later'};return `<div class="notice"><strong>Bedtime conflict resolved for today</strong><br>${labels[r.choice]||'Temporary one-day choice applied.'}<div class="conflict-actions"><button id="changeBedtimeResolution" class="secondary">Change decision</button></div></div>`}
+function bedtimeResolutionHTML(d){let r=d.bedtimeResolution;if(!r)return '';
+ if(db.advanced.showBedtimeResolutionNotice===false)return '<button class="secondary" id="changeBedtimeResolution">Change bedtime decision for today</button>';
+ let labels={skip:'Skipped final nap',shorten:'Shortened final nap below minimum',push:'Pushed bedtime later'};return `<div class="notice"><strong>Bedtime conflict resolved for today</strong><br>${labels[r.choice]||'Temporary one-day choice applied.'}<div class="conflict-actions"><button id="changeBedtimeResolution" class="secondary">Change decision</button></div></div>`}
 function reopenBedtimeResolution(){
  const d=db.currentDay;if(!d)return;
  if(d.bedtimeResolution?.snapshot){
@@ -1676,8 +1684,8 @@ function reopenBedtimeResolution(){
   reconcileDay(d);save();render();
  }
 }
-function today(){if(!db.currentDay)return `<div class="top"><div><h1>Today</h1><div class="muted">${db.profile.babyName?esc(db.profile.babyName)+"'s ":''}BabyFlow Day</div></div><span class="badge">BF2 v1.0.33</span></div><div class="card"><h2>Start today's BabyFlow</h2><p class="muted">A new BabyFlow Day begins with Good Morning—not at midnight.</p><label>Actual Good Morning<input id="gmStart" type="time" value="${inputClockValue(db.settings.goodMorning,db.advanced.goodMorningRangePoint)}"></label><button class="fab" id="startDay">Start BabyFlow Day</button></div>`;
- let d=db.currentDay;return `${db.meta.storageWarning?`<div class="notice">${esc(db.meta.storageWarning)}</div>`:''}<div class="top"><div><h1>Today</h1><div class="muted">${new Date(d.startedAt).toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</div></div><span class="badge">BF2 v1.0.33</span></div>${conflictHTML(d)}${exceptionResolutionHTML(d)}${bedtimeResolutionHTML(d)}${noticesHTML(d)}${d.autoFeedExtensionPaused?'<div class="notice small">Automatic addition of numbered Feeds is paused because you deleted a Feed today. Existing Feeds remain editable. <button id="resumeAutoFeeds" class="secondary" style="margin-top:7px">Resume automatic Feeds</button></div>':''}<div class="card">${timelineHTML(d)}</div><button class="fab" id="add">+ Add to Timeline</button><button class="secondary fab" id="newMorning">Next Good Morning / Start New Day</button>`}
+function today(){if(!db.currentDay)return `<div class="top"><div><h1>Today</h1><div class="muted">${db.profile.babyName?esc(db.profile.babyName)+"'s ":''}BabyFlow Day</div></div><span class="badge">BF2 v1.0.34</span></div><div class="card"><h2>Start today's BabyFlow</h2><p class="muted">A new BabyFlow Day begins with Good Morning—not at midnight.</p><label>Actual Good Morning<input id="gmStart" type="time" value="${inputClockValue(db.settings.goodMorning,db.advanced.goodMorningRangePoint)}"></label><button class="fab" id="startDay">Start BabyFlow Day</button></div>`;
+ let d=db.currentDay;return `${db.meta.storageWarning?`<div class="notice">${esc(db.meta.storageWarning)}</div>`:''}<div class="top"><div><h1>Today</h1><div class="muted">${new Date(d.startedAt).toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric'})}</div></div><span class="badge">BF2 v1.0.34</span></div>${conflictHTML(d)}${exceptionResolutionHTML(d)}${bedtimeResolutionHTML(d)}${noticesHTML(d)}${d.autoFeedExtensionPaused?'<div class="notice small">Automatic addition of numbered Feeds is paused because you deleted a Feed today. Existing Feeds remain editable. <button id="resumeAutoFeeds" class="secondary" style="margin-top:7px">Resume automatic Feeds</button></div>':''}<div class="card">${timelineHTML(d)}</div><button class="fab" id="add">+ Add to Timeline</button><button class="secondary fab" id="newMorning">Next Good Morning / Start New Day</button>`}
 function history(){return `<div class="top"><div><h1>History</h1><div class="muted">Previous BabyFlow Days are kept indefinitely.</div></div></div>${db.history.length?db.history.slice().reverse().map(d=>`<div class="card history-day" role="button" tabindex="0" data-history-id="${esc(d.id)}"><div class="row between"><strong>${new Date(d.startedAt).toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric',year:'numeric'})}</strong><span class="pill">${d.events.length} events</span></div><div class="small muted" style="margin-top:8px">Good Morning ${time(mins(d.goodMorningActual))} · ${d.events.filter(e=>e.state==='actual').length} Actual</div></div>`).join(''):'<div class="card muted">No previous BabyFlow Days yet.</div>'}`}
 
 // History is a preserved final snapshot. Correcting a past Actual never runs the active-day resolver.
@@ -2140,6 +2148,7 @@ function advanced(){
  <label><span><input id="actDur" type="checkbox" style="width:auto"> Show Activity durations</span></label>
  <label><span><input id="timelineLocks" type="checkbox" style="width:auto"> Show lock indicators on Today timeline</span></label><label><span><input id="activityDeleteConfirm" type="checkbox" style="width:auto"> Confirm before deleting Activities from Today</span></label><label><span><input id="lockedEditWarning" type="checkbox" style="width:auto"> Warn when manually editing a locked event</span></label>
  <label><span><input id="actualLockWarning" type="checkbox" style="width:auto"> Warn when logging an Actual that differs from a Lock</span></label>
+<label><span><input id="bedtimeNotice" type="checkbox" style="width:auto"> Show notice when a bedtime conflict is resolved</span></label>
 <label><span><input id="notifyRoutine" type="checkbox" style="width:auto"> Show notices for automatic scheduling adjustments</span></label>
  <label><span><input id="notifyRestore" type="checkbox" style="width:auto"> Notify when a temporary exception choice is no longer needed</span></label>
  <button id="advSave">Save Advanced Settings</button><button id="manageActivities" class="secondary">Manage Activity menu</button></div>`);
@@ -2151,7 +2160,8 @@ function advanced(){
  document.querySelector('#extraReset').checked=!!db.settings.extraFeedResetsInterval;
  document.querySelector('#actDur').checked=db.advanced.activityDurationDisplay!==false;
  document.querySelector('#timelineLocks').checked=db.advanced.showTimelineLocks!==false;document.querySelector('#activityDeleteConfirm').checked=db.advanced.confirmActivityDelete!==false;document.querySelector('#lockedEditWarning').checked=db.advanced.warnWhenEditingLocked!==false;document.querySelector('#actualLockWarning').checked=db.advanced.warnWhenActualDiffersFromLock!==false;
-document.querySelector('#notifyRoutine').checked=!!db.advanced.notifyRoutineAdjustments;
+document.querySelector('#bedtimeNotice').checked=db.advanced.showBedtimeResolutionNotice!==false;
+ document.querySelector('#notifyRoutine').checked=!!db.advanced.notifyRoutineAdjustments;
  document.querySelector('#notifyRestore').checked=db.advanced.notifyOverrideRestored!==false;
  document.querySelector('#manageActivities').onclick=manageActivities;
  document.querySelector('#advSave').onclick=()=>{
@@ -2163,6 +2173,7 @@ document.querySelector('#notifyRoutine').checked=!!db.advanced.notifyRoutineAdju
   db.advanced.activityAutoComplete=document.querySelector('#auto').checked;
   db.settings.extraFeedResetsInterval=document.querySelector('#extraReset').checked;
 db.advanced.activityDurationDisplay=document.querySelector('#actDur').checked;
+  db.advanced.showBedtimeResolutionNotice=document.querySelector('#bedtimeNotice').checked;
   db.advanced.notifyRoutineAdjustments=document.querySelector('#notifyRoutine').checked;
   db.advanced.notifyOverrideRestored=document.querySelector('#notifyRestore').checked;
   db.advanced.showTimelineLocks=document.querySelector('#timelineLocks').checked;db.advanced.confirmActivityDelete=document.querySelector('#activityDeleteConfirm').checked;db.advanced.warnWhenEditingLocked=document.querySelector('#lockedEditWarning').checked;db.advanced.warnWhenActualDiffersFromLock=document.querySelector('#actualLockWarning').checked;
